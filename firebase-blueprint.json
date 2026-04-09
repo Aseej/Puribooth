@@ -1,0 +1,28 @@
+{
+  "entities": {
+    "session": {
+      "title": "Session",
+      "description": "A photobooth session for one or two users.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "hostId": { "type": "string" },
+        "hostName": { "type": "string" },
+        "guestId": { "type": "string" },
+        "guestName": { "type": "string" },
+        "status": { "type": "string", "enum": ["waiting", "ready", "capturing", "finished"] },
+        "currentTurn": { "type": "number" },
+        "photos": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "number" },
+        "expiresAt": { "type": "number" }
+      },
+      "required": ["id", "hostId", "status", "currentTurn", "photos", "createdAt", "expiresAt"]
+    }
+  },
+  "firestore": {
+    "/sessions/{sessionId}": {
+      "schema": "session",
+      "description": "Collection of photobooth sessions."
+    }
+  }
+}

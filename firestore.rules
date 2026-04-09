@@ -1,0 +1,84 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "try.aseejp@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isSessionParticipant(sessionData) {
+      return isAuthenticated() && (request.auth.uid == sessionData.hostId || request.auth.uid == sessionData.guestId);
+    }
+
+    function isNotExpired(sessionData) {
+      return sessionData.expiresAt > request.time.toMillis();
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+    function isValidSession(data) {
+      let requiredFields = ['id', 'hostId', 'status', 'currentTurn', 'photos', 'createdAt', 'expiresAt'];
+      let allowedFields = ['id', 'hostId', 'hostName', 'guestId', 'guestName', 'status', 'currentTurn', 'photos', 'createdAt', 'expiresAt'];
+      
+      return data.keys().hasAll(requiredFields) &&
+             data.keys().hasOnly(allowedFields) &&
+             data.id is string && data.id.size() > 0 && data.id.size() <= 20 &&
+             data.hostId is string && data.hostId.size() > 0 &&
+             (!('hostName' in data) || (data.hostName is string && data.hostName.size() <= 100)) &&
+             (!('guestId' in data) || (data.guestId is string && data.guestId.size() > 0)) &&
+             (!('guestName' in data) || (data.guestName is string && data.guestName.size() <= 100)) &&
+             data.status in ['waiting', 'ready', 'capturing', 'finished'] &&
+             data.currentTurn is number &&
+             data.photos is list && data.photos.size() == 4 &&
+             data.createdAt is number &&
+             data.expiresAt is number &&
+             data.expiresAt > data.createdAt;
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) && request.resource.data.role == 'user';
+      allow update: if (isOwner(userId) && request.resource.data.role == resource.data.role) || isAdmin();
+    }
+
+    match /sessions/{sessionId} {
+      allow read: if isAuthenticated();
+      
+      allow create: if isAuthenticated() && 
+                      request.resource.data.id == sessionId &&
+                      request.resource.data.hostId == request.auth.uid &&
+                      isValidSession(request.resource.data);
+      
+      allow update: if isAuthenticated() && isNotExpired(resource.data) && (
+        // Allow joining
+        (resource.data.status == 'waiting' && 
+         request.resource.data.guestId == request.auth.uid &&
+         request.resource.data.status == 'ready' &&
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['guestId', 'guestName', 'status']) &&
+         isValidSession(request.resource.data)) ||
+        
+        // Allow state updates by participants
+        (isSessionParticipant(resource.data) && isValidSession(request.resource.data))
+      );
+    }
+
+    // Allow connection test
+    match /test/connection {
+      allow read: if true;
+    }
+  }
+}

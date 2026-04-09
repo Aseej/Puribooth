@@ -1,0 +1,5 @@
+{
+  "name": "PuriBooth",
+  "description": "An adorable photobooth web app for solo or dual sessions.",
+  "requestFramePermissions": ["camera"]
+}
