@@ -1,6 +1,6 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth, signInAnonymously, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from 'firebase/auth';
-import { getFirestore, doc, onSnapshot, setDoc, updateDoc, getDoc, collection, query, where, limit, getDocFromServer } from 'firebase/firestore';
+import { getFirestore, doc, onSnapshot, setDoc, updateDoc, getDoc, collection, query, where, limit, getDocFromServer, initializeFirestore } from 'firebase/firestore';
 import config from '../../firebase-applet-config.json';
 
 // Support environment variables for Netlify/CI deployment
@@ -18,7 +18,13 @@ const firestoreDatabaseId = import.meta.env.VITE_FIREBASE_FIRESTORE_DATABASE_ID 
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
-const db = getFirestore(app, firestoreDatabaseId);
+
+// Initialize Firestore with long polling to bypass potential WebSocket blocks on mobile/proxies
+const db = initializeFirestore(app, {
+  experimentalForceLongPolling: true,
+}, firestoreDatabaseId);
+
+export { firebaseConfig, firestoreDatabaseId };
 
 export enum OperationType {
   CREATE = 'create',
@@ -75,10 +81,9 @@ export async function testConnection() {
   try {
     await getDocFromServer(doc(db, 'test', 'connection'));
     console.log('Firestore connection test successful');
-  } catch (error) {
-    if(error instanceof Error && error.message.includes('the client is offline')) {
-      console.error("Please check your Firebase configuration. The client is offline.");
-    }
+  } catch (error: any) {
+    console.error('Firestore connection test failed:', error);
+    // Don't alert anymore, just log. The user can see status in the UI.
   }
 }
 

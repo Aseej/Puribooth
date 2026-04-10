@@ -43,19 +43,43 @@ export async function generatePhotostrip({ photos, frame, filter }: PhotostripPr
     
     ctx.save();
     
-    // Create rounded clipping path for each photo
-    const radius = 20;
-    ctx.beginPath();
-    ctx.moveTo(padding + radius, y);
-    ctx.lineTo(padding + photoWidth - radius, y);
-    ctx.quadraticCurveTo(padding + photoWidth, y, padding + photoWidth, y + radius);
-    ctx.lineTo(padding + photoWidth, y + photoHeight - radius);
-    ctx.quadraticCurveTo(padding + photoWidth, y + photoHeight, padding + photoWidth - radius, y + photoHeight);
-    ctx.lineTo(padding + radius, y + photoHeight);
-    ctx.quadraticCurveTo(padding, y + photoHeight, padding, y + photoHeight - radius);
-    ctx.lineTo(padding, y + radius);
-    ctx.quadraticCurveTo(padding, y, padding + radius, y);
-    ctx.closePath();
+    if (frame.shape === 'heart') {
+      // Create heart clipping path
+      const centerX = padding + photoWidth / 2;
+      const centerY = y + photoHeight / 2;
+      const size = Math.min(photoWidth, photoHeight) * 0.8;
+      
+      ctx.beginPath();
+      ctx.moveTo(centerX, centerY + size / 4);
+      // Left side of heart
+      ctx.bezierCurveTo(
+        centerX - size / 2, centerY - size / 2, 
+        centerX - size, centerY + size / 4, 
+        centerX, centerY + size
+      );
+      // Right side of heart
+      ctx.bezierCurveTo(
+        centerX + size, centerY + size / 4, 
+        centerX + size / 2, centerY - size / 2, 
+        centerX, centerY + size / 4
+      );
+      ctx.closePath();
+    } else {
+      // Create rounded clipping path for each photo
+      const radius = 20;
+      ctx.beginPath();
+      ctx.moveTo(padding + radius, y);
+      ctx.lineTo(padding + photoWidth - radius, y);
+      ctx.quadraticCurveTo(padding + photoWidth, y, padding + photoWidth, y + radius);
+      ctx.lineTo(padding + photoWidth, y + photoHeight - radius);
+      ctx.quadraticCurveTo(padding + photoWidth, y + photoHeight, padding + photoWidth - radius, y + photoHeight);
+      ctx.lineTo(padding + radius, y + photoHeight);
+      ctx.quadraticCurveTo(padding, y + photoHeight, padding, y + photoHeight - radius);
+      ctx.lineTo(padding, y + radius);
+      ctx.quadraticCurveTo(padding, y, padding + radius, y);
+      ctx.closePath();
+    }
+    
     ctx.clip();
 
     // Apply filter

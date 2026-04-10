@@ -16,9 +16,15 @@ export function useCamera() {
         videoRef.current.srcObject = mediaStream;
       }
       setError(null);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error accessing camera:', err);
-      setError('Could not access camera. Please check permissions.');
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        setError('Camera permission denied. Please allow camera access in your browser settings and refresh.');
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        setError('No camera found on this device.');
+      } else {
+        setError('Could not access camera: ' + (err.message || 'Unknown error'));
+      }
     }
   };
 
@@ -29,7 +35,7 @@ export function useCamera() {
     }
   };
 
-  const takePhoto = (): string | null => {
+  const takePhoto = (filter: string = 'none'): string | null => {
     if (!videoRef.current) return null;
 
     const vw = videoRef.current.videoWidth;
@@ -56,6 +62,9 @@ export function useCamera() {
     canvas.height = 600;
     const ctx = canvas.getContext('2d');
     if (!ctx) return null;
+
+    // Apply filter to canvas
+    ctx.filter = filter;
 
     // Mirror the photo
     ctx.translate(canvas.width, 0);

@@ -8,18 +8,19 @@ interface CameraViewProps {
   isCapturing: boolean;
   countdown: number | null;
   flash: boolean;
+  filter?: string;
 }
 
 export interface CameraViewHandle {
   takePhoto: () => string | null;
 }
 
-export const CameraView = forwardRef<CameraViewHandle, CameraViewProps>(({ onCapture, isCapturing, countdown, flash }, ref) => {
+export const CameraView = forwardRef<CameraViewHandle, CameraViewProps>(({ onCapture, isCapturing, countdown, flash, filter = 'none' }, ref) => {
   const { videoRef, startCamera, stopCamera, takePhoto, stream, error } = useCamera();
 
   useImperativeHandle(ref, () => ({
     takePhoto: () => {
-      const photo = takePhoto();
+      const photo = takePhoto(filter);
       if (photo) onCapture(photo);
       return photo;
     }
@@ -39,8 +40,18 @@ export const CameraView = forwardRef<CameraViewHandle, CameraViewProps>(({ onCap
       )}
       
       {error && (
-        <div className="absolute inset-0 flex items-center justify-center text-white p-4 text-center">
-          <p>{error}</p>
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-white p-6 text-center bg-black/80 backdrop-blur-sm z-50">
+          <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mb-4">
+            <Zap className="w-8 h-8 text-red-500" />
+          </div>
+          <p className="text-lg font-bold mb-2">Camera Error</p>
+          <p className="text-sm opacity-80 mb-6">{error}</p>
+          <button 
+            onClick={() => { startCamera(); }}
+            className="px-6 py-2 bg-white text-black rounded-full font-bold hover:bg-gray-200 transition-colors"
+          >
+            Try Again
+          </button>
         </div>
       )}
 
@@ -49,32 +60,22 @@ export const CameraView = forwardRef<CameraViewHandle, CameraViewProps>(({ onCap
         autoPlay
         playsInline
         muted
+        style={{ filter }}
         className="w-full h-full object-cover scale-x-[-1]"
       />
 
-      {/* Flash Effect */}
-      <AnimatePresence>
-        {flash && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-white z-50"
-          />
-        )}
-      </AnimatePresence>
-
       {/* Countdown Overlay */}
-      <AnimatePresence>
+      <AnimatePresence mode="wait">
         {countdown !== null && (
           <motion.div
             key={countdown}
-            initial={{ scale: 0.5, opacity: 0 }}
+            initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 1.5, opacity: 0 }}
-            className="absolute inset-0 flex items-center justify-center z-40"
+            exit={{ scale: 1.2, opacity: 0 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+            className="absolute inset-0 flex items-center justify-center z-40 bg-black/10"
           >
-            <span className="text-8xl font-bold text-white drop-shadow-[0_0_20px_rgba(0,0,0,0.5)]">
+            <span className="text-9xl font-black text-white drop-shadow-[0_0_30px_rgba(0,0,0,0.8)] select-none">
               {countdown}
             </span>
           </motion.div>

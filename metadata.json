@@ -1,5 +1,5 @@
 {
   "name": "PuriBooth",
-  "description": "An adorable photobooth web app for solo or dual sessions.",
+  "description": "An adorable photobooth web app with cute filters and heart-shaped frames.",
   "requestFramePermissions": ["camera"]
 }
